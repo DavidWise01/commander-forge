@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Commander Forge · pick a commander, get the deck</title>
+<meta name="description" content="The Commander Forge — an ARENA (Magic: The Gathering) tool. Pick a commander, a style, a strategy, and a favorite category, and it forges an algorithmic deck skeleton + the best combo for your colors — every card pulled LIVE from Scryfall (every Magic card ever printed), ranked by EDHREC play-rank, color-identity-legal. A heuristic builder, honestly flagged. David Lee Wise / Bridge-Burners LLC, ROOT0.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0a07; --panel:#15110b; --panel2:#1b160e; --void:#080603; --line:rgba(201,162,39,.18); --line2:rgba(201,162,39,.34);
+    --ink:#efe7d2; --dim:#b3a684; --faint:#6f6243;
+    --gold:#c9a23a; --gold-br:#e8cf7a; --forge:#e07a3a; --forge-br:#f0a24a;
+    --W:#f3e6c0; --U:#4f8fe0; --B:#9a6fb0; --R:#e0603a; --G:#4fa86a; --C:#9a8f7a;
+    --chase:#e0603a; --staple:#c9a23a; --role:#7fae72; --bulk:#6a6a6a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(1100px 600px at 50% -12%,rgba(224,122,58,.10),transparent 60%),radial-gradient(800px 500px at 85% 8%,rgba(201,162,39,.07),transparent 60%)}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  .hero{padding:54px 0 18px;text-align:center}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--forge-br);margin-bottom:16px}
+  h1{font-family:'Cinzel',serif;font-weight:700;font-size:clamp(34px,6.5vw,60px);line-height:1.04;color:var(--gold-br);letter-spacing:.01em}
+  .deck-sub{color:var(--dim);max-width:660px;margin:16px auto 0;font-size:16px}
+  .deck-sub b{color:var(--ink);font-weight:500} .deck-sub .g{color:var(--gold-br)}
+
+  .forge{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin:26px 0;position:relative}
+  .forge::before,.forge::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--line2)}
+  .forge::before{top:-1px;left:-1px;border-right:0;border-bottom:0} .forge::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+  .fld{margin:14px 0}
+  .fld label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:8px}
+  .cmd-wrap{position:relative}
+  input[type=text]{width:100%;font-family:'Inter',sans-serif;font-size:16px;background:var(--void);border:1px solid var(--line);border-radius:9px;padding:13px 14px;color:var(--ink);outline:none}
+  input[type=text]:focus{border-color:var(--gold)}
+  .ac{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel2);border:1px solid var(--line2);border-radius:9px;z-index:20;overflow:hidden;display:none}
+  .ac.on{display:block} .ac div{padding:9px 13px;font-size:14px;cursor:pointer;color:var(--dim)} .ac div:hover,.ac div.sel{background:rgba(201,162,39,.14);color:var(--gold-br)}
+  .pills{display:flex;flex-wrap:wrap;gap:7px}
+  .pill{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--dim);cursor:pointer;transition:.12s;user-select:none}
+  .pill:hover{border-color:var(--line2)} .pill.on{border-color:var(--gold);background:rgba(201,162,39,.16);color:var(--gold-br)}
+  .pill small{display:block;color:var(--faint);font-size:9.5px;margin-top:2px;letter-spacing:0;text-transform:none;font-family:'Inter',sans-serif}
+  .quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .quick .q{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);border:1px dashed var(--line);border-radius:14px;padding:5px 10px;cursor:pointer}
+  .quick .q:hover{color:var(--gold-br);border-color:var(--gold)}
+  .btn{font-family:'Cinzel',serif;font-weight:700;font-size:16px;letter-spacing:.04em;border:1px solid var(--forge);background:linear-gradient(180deg,var(--forge-br),var(--forge));color:#1a0e06;border-radius:10px;padding:14px 22px;cursor:pointer;transition:.12s;margin-top:8px;width:100%}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:scale(.99)} .btn[disabled]{opacity:.5;cursor:wait}
+
+  .status{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--dim);text-align:center;margin:18px 0;min-height:20px}
+  .status .g{color:var(--gold-br)} .status.err{color:var(--forge-br)}
+
+  /* commander head */
+  .cmdhead{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:18px;margin:22px 0}
+  .cmdhead img{width:128px;border-radius:8px;border:1px solid var(--line)}
+  .cmdhead .meta .nm{font-family:'Cinzel',serif;font-weight:700;font-size:22px;color:var(--gold-br)}
+  .cmdhead .meta .tl{color:var(--dim);font-size:14px;margin-top:4px}
+  .pips{display:flex;gap:5px;margin-top:8px}
+  .pip{width:20px;height:20px;border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center;color:#1a140a;font-weight:700}
+  .pip.W{background:var(--W)} .pip.U{background:var(--U)} .pip.B{background:var(--B)} .pip.R{background:var(--R)} .pip.G{background:var(--G)} .pip.C{background:var(--C)}
+
+  .sec{margin:30px 0 0}
+  .sec h2{font-family:'Cinzel',serif;font-weight:700;font-size:clamp(19px,3vw,26px);color:var(--gold-br)}
+  .sec .lead{color:var(--dim);font-size:14.5px;margin-top:6px}
+
+  /* the combo */
+  .combo{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--forge);border-radius:13px;padding:20px;margin:14px 0;box-shadow:0 0 30px -16px var(--forge)}
+  .combo .k{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--forge-br);margin-bottom:8px}
+  .combo .pieces{font-family:'Cinzel',serif;font-weight:700;font-size:clamp(17px,2.6vw,22px);color:var(--ink);line-height:1.35}
+  .combo .pieces .plus{color:var(--forge-br);margin:0 6px}
+  .combo .res{color:var(--dim);font-size:14.5px;margin-top:8px} .combo .res b{color:var(--gold-br);font-weight:500}
+  .combo.alt{border-color:var(--line);box-shadow:none;background:var(--panel)} .combo.alt .k{color:var(--gold)}
+
+  /* deck sections */
+  .slot{border:1px solid var(--line);border-radius:11px;background:var(--panel);margin:12px 0;overflow:hidden}
+  .slot .sh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
+  .slot .sh .t{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-br)}
+  .slot .sh .ct{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px;background:var(--line)}
+  .card{background:var(--panel);padding:9px 13px;display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:13.5px}
+  .card a{color:var(--ink);text-decoration:none;border-bottom:1px solid transparent} .card a:hover{border-bottom-color:var(--gold);color:var(--gold-br)}
+  .card .mv{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+  .card .usd{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--role)}
+  .slot .none{padding:12px 16px;color:var(--faint);font-size:13px;font-family:'JetBrains Mono',monospace}
+
+  .exportbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}
+  .exportbar .btn2{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--gold);background:transparent;color:var(--gold-br);border-radius:8px;padding:10px 15px;cursor:pointer}
+  .exportbar .btn2:hover{background:rgba(201,162,39,.12)}
+  .exportbar .note{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--faint)}
+
+  .flag{font-size:13.5px;color:var(--dim);line-height:1.7;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px;margin:24px 0}
+  .flag b{color:var(--forge-br);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:8px}
+  .flag code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold-br);background:var(--void);padding:1px 5px;border-radius:4px}
+  .foot{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);line-height:1.9;margin:34px 0 70px;border-top:1px solid var(--line);padding-top:18px;text-align:center} .foot b{color:var(--gold-br)}
+  a{color:var(--gold-br)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">ARENA · Magic: The Gathering · the deck-forge</div>
+    <h1>The Commander Forge</h1>
+    <p class="deck-sub">Name a <b>commander</b>, choose a <b>style</b>, a <b>strategy</b>, and a <b>favorite category</b> — the forge pulls from <b class="g">every Magic card ever printed</b> (live, via Scryfall), ranks by real <b>EDHREC play-rank</b>, keeps only what's legal in your colors, and hands back a deck skeleton + the best combo for your colors.</p>
+  </header>
+
+  <div class="forge">
+    <div class="fld">
+      <label>1 · your commander</label>
+      <div class="cmd-wrap">
+        <input type="text" id="cmd" placeholder="type a commander… e.g. Atraxa, Krenko, Edgar Markov" autocomplete="off" spellcheck="false">
+        <div class="ac" id="ac"></div>
+      </div>
+      <div class="quick" id="quick"></div>
+    </div>
+    <div class="fld">
+      <label>2 · style — how it plays</label>
+      <div class="pills" id="styles"></div>
+    </div>
+    <div class="fld">
+      <label>3 · strategy — the engine</label>
+      <div class="pills" id="strats"></div>
+    </div>
+    <div class="fld">
+      <label>4 · favorite category — what you love casting</label>
+      <div class="pills" id="cats"></div>
+    </div>
+    <button class="btn" id="go">⚒ Forge the deck</button>
+  </div>
+
+  <div class="status" id="status">pick a commander and hit forge — the anvil is hot.</div>
+  <div id="out"></div>
+
+  <div class="flag" style="display:none" id="flag">
+    <b>honest flag — how "best" is computed</b>
+    Every card here is pulled <b style="display:inline;color:var(--ink);font-family:inherit;text-transform:none;letter-spacing:0">live from Scryfall</b> — the complete database of every Magic card ever printed — filtered to your commander's <b style="display:inline;color:var(--ink);font-family:inherit;text-transform:none;letter-spacing:0">color identity</b> (so it's all Commander-legal in your deck) and ordered by <code>order=edhrec</code>, Scryfall's real popularity rank — i.e. what the most decks actually run. So "best" means <b style="display:inline;color:var(--ink);font-family:inherit;text-transform:none;letter-spacing:0">most-played + on-theme</b>, a transparent heuristic — not a solver, not a guarantee, and not full EDHREC synergy data. The combo is matched from a curated set of well-known, real interactions whose color requirement fits your commander. It's a strong <em>starting skeleton</em> — tune the counts, the mana base, and the spice to taste. Card names, prices, and images are facts from Scryfall (CDN-hot-linked, sanctioned non-commercial use); an unaffiliated fan tool — Magic © Wizards of the Coast.
+  </div>
+
+  <div class="foot">
+    THE COMMANDER FORGE · ARENA domain · source = every Magic card ever printed, live from Scryfall<br>
+    pick commander · style · strategy · favorite category → EDHREC-ranked, color-legal skeleton + the best combo for your colors<br>
+    <b>a transparent heuristic, not a solver</b> · David Lee Wise / Bridge-Burners LLC · ROOT0
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const API="https://api.scryfall.com";
+
+/* ---- the pickers ---- */
+const STYLES=[
+  {k:"midrange",label:"Midrange",sub:"value & flexibility",extra:'otag:card-advantage'},
+  {k:"aggro",label:"Aggro",sub:"fast, low curve",extra:'t:creature mv<=3 o:haste'},
+  {k:"control",label:"Control",sub:"answers & counters",extra:'otag:counterspell'},
+  {k:"combo",label:"Combo",sub:"assemble & win",extra:'otag:tutor'},
+  {k:"stax",label:"Stax",sub:"deny & tax",extra:'(o:"don\'t untap" or o:"spells cost {" or o:"can\'t")'},
+  {k:"ramp",label:"Big Mana",sub:"ramp into bombs",extra:'mv>=6 (t:creature or t:sorcery)'},
+];
+const STRATS=[
+  {k:"tokens",label:"Tokens",q:'o:"create" o:"token"'},
+  {k:"counters",label:"+1/+1 Counters",q:'o:"+1/+1 counter"'},
+  {k:"aristocrats",label:"Aristocrats",q:'(o:"whenever a creature" o:"dies") or o:"sacrifice a creature"'},
+  {k:"spellslinger",label:"Spellslinger",q:'o:"instant or sorcery"'},
+  {k:"reanimator",label:"Reanimator",q:'o:"from your graveyard to the battlefield"'},
+  {k:"lifegain",label:"Lifegain",q:'otag:lifegain'},
+  {k:"artifacts",label:"Artifacts",q:'t:artifact'},
+  {k:"landfall",label:"Landfall / Lands",q:'(o:landfall or otag:lands-matter)'},
+  {k:"voltron",label:"Voltron",q:'(t:equipment or t:aura or o:"hexproof")'},
+  {k:"mill",label:"Mill",q:'otag:mill'},
+];
+const CATS=[
+  {k:"creature",label:"Creatures",q:'t:creature'},
+  {k:"instsorc",label:"Instants & Sorceries",q:'(t:instant or t:sorcery)'},
+  {k:"artifact",label:"Artifacts",q:'t:artifact'},
+  {k:"enchant",label:"Enchantments",q:'t:enchantment'},
+  {k:"planeswalker",label:"Planeswalkers",q:'t:planeswalker'},
+  {k:"land",label:"Lands",q:'t:land -t:basic'},
+];
+const QUICK=["Atraxa, Praetors' Voice","Krenko, Mob Boss","Edgar Markov","The Ur-Dragon","Yuriko, the Tiger's Shadow","Chulane, Teller of Tales","Meren of Clan Nel Toth","Urza, Lord High Artificer"];
+
+/* curated, real, well-known combos. needs = colors required (subset of CI to offer it). themes link to strategy. */
+const COMBOS=[
+  {p:["Thassa's Oracle","Demonic Consultation"],needs:["U","B"],theme:["spellslinger","control","combo"],r:"Consultation exiles your library naming a card you don't have; Thassa's Oracle sees an empty library and you win on its ETB."},
+  {p:["Mikaeus, the Unhallowed","Triskelion"],needs:["B"],theme:["aristocrats","counters","combo"],r:"Trike pings, dies, Mikaeus returns it with a +1/+1 counter; remove the counter to ping again — infinite damage."},
+  {p:["Kiki-Jiki, Mirror Breaker","Restoration Angel"],needs:["R","W"],theme:["tokens","combo","midrange"],r:"Kiki copies Resto Angel; the copy blinks Kiki, untapping it — infinite hasty attackers."},
+  {p:["Heliod, Sun-Crowned","Walking Ballista"],needs:["W"],theme:["counters","lifegain","combo"],r:"Ballista with lifelink (from Heliod) pings; the lifegain lets Heliod add a counter back — infinite pings."},
+  {p:["Worldgorger Dragon","Animate Dead"],needs:["B"],theme:["reanimator","combo"],r:"Reanimate the Dragon; its ETB exiles your stuff, it dies, returns everything tapped/untapped — loop for infinite mana & flicker."},
+  {p:["Sanguine Bond","Exquisite Blood"],needs:["B"],theme:["lifegain","aristocrats","combo"],r:"You gain life → an opponent loses life → you gain life → … each table loses all their life."},
+  {p:["Isochron Scepter","Dramatic Reversal"],needs:["U"],theme:["spellslinger","artifacts","combo"],r:"Imprint Reversal; with 3+ mana from nonland permanents, untap them and recast — infinite mana and untaps."},
+  {p:["Niv-Mizzet, the Firemind","Curiosity"],needs:["U","R"],theme:["spellslinger","combo"],r:"Niv draws → deals 1 → Curiosity draws again → loop — draw your deck and burn the table."},
+  {p:["Karmic Guide","Reveillark","a sac outlet"],needs:["W"],theme:["aristocrats","reanimator","combo"],r:"Sac the pair; each returns the other on the way out — infinite recursion with any free sac outlet."},
+  {p:["Food Chain","Eternal Scourge"],needs:["G"],theme:["tokens","combo"],r:"Exile Scourge to Food Chain for creature-only mana; recast it from exile — infinite colored mana for creatures."},
+  {p:["Basalt Monolith","Rings of Brighthearth"],needs:[],theme:["artifacts","ramp","combo","stax","midrange","tokens","counters","lifegain","spellslinger","reanimator","landfall","voltron","mill","aggro","control"],r:"Tap Basalt for 3, pay 3 to untap, copy the untap with Rings (paying 2) — net infinite colorless mana. Works in any deck."},
+];
+
+let cmdName="", style="midrange", strat="tokens", cat="creature";
+
+/* build pickers */
+function mkpills(host,arr,getActive,set){
+  host.innerHTML="";
+  arr.forEach(o=>{const el=document.createElement("div");el.className="pill"+(getActive()===o.k?" on":"");
+    el.innerHTML=o.label+(o.sub?`<small>${o.sub}</small>`:"");
+    el.onclick=()=>{set(o.k);[...host.children].forEach((c,i)=>c.classList.toggle("on",arr[i].k===o.k));};
+    host.appendChild(el);});
+}
+mkpills($("styles"),STYLES,()=>style,k=>style=k);
+mkpills($("strats"),STRATS,()=>strat,k=>strat=k);
+mkpills($("cats"),CATS,()=>cat,k=>cat=k);
+QUICK.forEach(q=>{const el=document.createElement("div");el.className="q";el.textContent=q.split(",")[0];el.onclick=()=>{$("cmd").value=q;cmdName=q;$("ac").classList.remove("on");};$("quick").appendChild(el);});
+
+/* autocomplete */
+let acTimer=null;
+$("cmd").addEventListener("input",e=>{
+  cmdName=e.target.value; clearTimeout(acTimer);
+  const v=e.target.value.trim(); if(v.length<3){$("ac").classList.remove("on");return;}
+  acTimer=setTimeout(async()=>{
+    try{ const r=await fetch(`${API}/cards/autocomplete?q=${encodeURIComponent(v)}`); const d=await r.json();
+      const items=(d.data||[]).slice(0,7);
+      if(!items.length){$("ac").classList.remove("on");return;}
+      $("ac").innerHTML=items.map(n=>`<div>${n}</div>`).join("");
+      [...$("ac").children].forEach(el=>el.onclick=()=>{$("cmd").value=el.textContent;cmdName=el.textContent;$("ac").classList.remove("on");});
+      $("ac").classList.add("on");
+    }catch(_){}
+  },180);
+});
+document.addEventListener("click",e=>{ if(!$("cmd").contains(e.target)&&!$("ac").contains(e.target))$("ac").classList.remove("on"); });
+
+/* scryfall slot search within color identity, ranked by edhrec */
+async function scry(idq, q, n, exclude){
+  const full=`${idq} legal:commander ${q} ${exclude?('-!"'+exclude.replace(/"/g,'')+'"'):''}`;
+  const url=`${API}/cards/search?q=${encodeURIComponent(full)}&order=edhrec&dir=asc&unique=cards`;
+  try{ const r=await fetch(url); if(!r.ok) return []; const d=await r.json(); return (d.data||[]).slice(0,n); }
+  catch(_){ return []; }
+}
+const mvOf=c=>c.mana_cost||(c.card_faces&&c.card_faces[0].mana_cost)||"";
+function cardRow(c){
+  const usd=(c.prices&&c.prices.usd)?`$${c.prices.usd}`:"";
+  return `<div class="card"><a href="${c.scryfall_uri}" target="_blank" rel="noopener">${c.name}</a><span class="mv">${mvOf(c)} <span class="usd">${usd}</span></span></div>`;
+}
+function slotHTML(title,target,cards){
+  const body = cards.length? `<div class="cards">${cards.map(cardRow).join("")}</div>` : `<div class="none">— no cards matched in these colors —</div>`;
+  return `<div class="slot"><div class="sh"><span class="t">${title}</span><span class="ct">target ~${target} · showing top ${cards.length}</span></div>${body}</div>`;
+}
+
+let lastList=[];
+async function forge(){
+  const name=(cmdName||$("cmd").value).trim();
+  if(!name){ $("status").className="status err"; $("status").textContent="name a commander first."; return; }
+  $("go").disabled=true; $("status").className="status"; $("status").innerHTML="finding your commander…"; $("out").innerHTML=""; $("flag").style.display="none"; $("ac").classList.remove("on");
+  let cmd;
+  try{ const r=await fetch(`${API}/cards/named?fuzzy=${encodeURIComponent(name)}`); if(!r.ok) throw 0; cmd=await r.json(); }
+  catch(_){ $("status").className="status err"; $("status").textContent=`couldn't find "${name}" — check the spelling.`; $("go").disabled=false; return; }
+  const ci=(cmd.color_identity||[]);
+  const idq = ci.length? "id<="+ci.join("").toLowerCase() : "id:c";
+  const stratO=STRATS.find(s=>s.k===strat), catO=CATS.find(c=>c.k===cat), styleO=STYLES.find(s=>s.k===style);
+
+  // commander header
+  const img=(cmd.image_uris&&cmd.image_uris.normal)||(cmd.card_faces&&cmd.card_faces[0].image_uris&&cmd.card_faces[0].image_uris.normal)||"";
+  const pips=(ci.length?ci:["C"]).map(c=>`<span class="pip ${c}">${c}</span>`).join("");
+  $("out").innerHTML=`<div class="cmdhead">${img?`<img src="${img}" alt="${cmd.name}">`:""}<div class="meta"><div class="nm">${cmd.name}</div><div class="tl">${cmd.type_line||""}</div><div class="pips">${pips}</div></div></div>`;
+
+  // slots (sequential, polite to the API)
+  const slots=[
+    {t:"Ramp",target:10,q:"otag:ramp -t:land",n:10},
+    {t:"Card Draw",target:10,q:"otag:card-advantage -t:land",n:10},
+    {t:"Removal",target:8,q:"otag:removal -t:land",n:10},
+    {t:"Board Wipes",target:3,q:"otag:board-wipe",n:5},
+    {t:`Strategy — ${stratO.label}`,target:24,q:stratO.q,n:14},
+    {t:`Style — ${styleO.label}`,target:6,q:styleO.extra,n:8},
+    {t:`Favorite — ${catO.label}`,target:6,q:catO.q,n:10},
+    {t:"Lands (nonbasic)",target:37,q:"is:land -t:basic",n:12},
+  ];
+  let done=0; lastList=[`// ${cmd.name} — forged by The Commander Forge`,`// style:${styleO.label} · strategy:${stratO.label} · favorite:${catO.label}`,`1 ${cmd.name} *CMDR*`,""];
+  let html="";
+  for(const s of slots){
+    $("status").innerHTML=`forging <span class="g">${s.t}</span> … (${++done}/${slots.length})`;
+    const cards=await scry(idq, s.q, s.n, cmd.name);
+    html+=slotHTML(s.t,s.target,cards);
+    lastList.push(`// ${s.t} (target ~${s.target})`);
+    cards.forEach(c=>lastList.push(`1 ${c.name}`)); lastList.push("");
+    $("out").insertAdjacentHTML("beforeend", html); html=""; // append progressively
+    await new Promise(r=>setTimeout(r,90));
+  }
+
+  // the combo(s)
+  const have=new Set(ci);
+  const fits=COMBOS.filter(co=>co.needs.every(n=>have.has(n)));
+  fits.sort((a,b)=>{
+    const at=a.theme.includes(strat)?0:1, bt=b.theme.includes(strat)?0:1;
+    if(at!==bt) return at-bt;
+    return b.needs.length-a.needs.length; // prefer more color-committed (more on-identity) over the generic
+  });
+  let comboHTML="";
+  if(fits.length){
+    const best=fits[0];
+    comboHTML+=`<div class="sec"><h2>The Combo</h2><div class="lead">the best-fitting known interaction for ${cmd.name}'s colors${best.theme.includes(strat)?` and your <b>${stratO.label}</b> plan`:""}.</div></div>`;
+    comboHTML+=`<div class="combo"><div class="k">⚡ the win — assemble &amp; protect it</div><div class="pieces">${best.p.join('<span class="plus">+</span>')}</div><div class="res">${best.r}</div></div>`;
+    fits.slice(1,3).forEach(c=>{comboHTML+=`<div class="combo alt"><div class="k">alternate line</div><div class="pieces">${c.p.join('<span class="plus">+</span>')}</div><div class="res">${c.r}</div></div>`;});
+  }
+  $("out").insertAdjacentHTML("afterbegin", `<div class="sec"><h2>${cmd.name} — the forge's build</h2><div class="lead">color identity ${ci.length?ci.join(""):"C"} · ranked by EDHREC play-rank · all Commander-legal in your colors</div></div>`+ (img?"":"") );
+  // place combo right after commander header — rebuild order: header already first; insert combo after it
+  $("out").insertAdjacentHTML("beforeend", comboHTML);
+  // export
+  $("out").insertAdjacentHTML("beforeend",
+    `<div class="exportbar"><button class="btn2" id="copy">⧉ copy decklist seed</button><span class="note">~99 + commander · top picks shown per slot; fill each slot to its target + ~30 basics</span></div>`);
+  $("copy").onclick=()=>{ navigator.clipboard&&navigator.clipboard.writeText(lastList.join("\n")); $("copy").textContent="✓ copied"; setTimeout(()=>$("copy").textContent="⧉ copy decklist seed",1500); };
+
+  $("status").className="status"; $("status").innerHTML=`forged — <span class="g">${cmd.name}</span>, ${styleO.label}/${stratO.label}, ${ci.length?ci.join(""):"colorless"}. tune to taste below.`;
+  $("flag").style.display="block";
+  $("go").disabled=false;
+}
+$("go").onclick=forge;
+$("cmd").addEventListener("keydown",e=>{ if(e.key==="Enter"){$("ac").classList.remove("on");forge();} });
+</script>
+</body>
+</html>
