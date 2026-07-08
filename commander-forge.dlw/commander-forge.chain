@@ -4,6 +4,6 @@ slug  : commander-forge
 seal  : d8fe4d1d34757ddf5d24dc460f5c2b9c1b3df812d71e2e37f10925b410e219b9
 prev  : a100afc1b62b57a4164389c3da848a2680e108dab0776d08a2e13e76565a4b6c
 link  : 4d15c1b0bf12f84dd07c938c2bdc9a1b7558d62318be325a951ef7226ed967c2
-head  : 3447d3a0533aaf1e29a8bdc67a9774884fb3ae9dbc8a17064b7a008ca3c4ec90
+head  : 13f9ace173ef2e60af38912ba329b4afcb5a38b84a0e4495e8d30327f8c99cc2
 
 — the tether: link = sha256(index|slug|seal|prev). the chain head commits to the whole corpus.
